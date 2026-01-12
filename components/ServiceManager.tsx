@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Clock, DollarSign, Users, Shield, Briefcase, RefreshCcw, Camera, Image as ImageIcon } from 'lucide-react';
+import { X, Save, Clock, DollarSign, Users, Shield, Briefcase, RefreshCcw, Camera, Image as ImageIcon, Sparkles, Loader2 } from 'lucide-react';
 import { Service, RecurrencePattern } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { geminiService } from '../services/geminiService';
 
 interface ServiceModalProps {
   service?: Service | null;
@@ -13,6 +14,7 @@ interface ServiceModalProps {
 export const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, onSave }) => {
   const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [formData, setFormData] = useState<Partial<Service>>({
     name: '',
     description: '',
@@ -28,9 +30,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, on
 
   useEffect(() => {
     if (service) {
-      setFormData({
-        ...service
-      });
+      setFormData({ ...service });
     } else {
       setFormData({
         name: '',
@@ -52,6 +52,16 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, on
     onSave(formData);
   };
 
+  const handleAiGenerate = async () => {
+    if (!formData.name || !formData.category) return;
+    setIsAiGenerating(true);
+    const description = await geminiService.generateServiceDescription(formData.name, formData.category);
+    if (description) {
+      setFormData(prev => ({ ...prev, description }));
+    }
+    setIsAiGenerating(false);
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -66,7 +76,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, on
   const toggleRecurrence = (pattern: RecurrencePattern) => {
     const current = formData.allowedRecurrence || [];
     if (current.includes(pattern)) {
-      if (pattern === RecurrencePattern.NONE) return; // Must allow at least one-time
+      if (pattern === RecurrencePattern.NONE) return; 
       setFormData({ ...formData, allowedRecurrence: current.filter(p => p !== pattern) });
     } else {
       setFormData({ ...formData, allowedRecurrence: [...current, pattern] });
@@ -87,7 +97,6 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, on
         </div>
 
         <form onSubmit={handleSubmit} className="p-10 space-y-8 max-h-[70vh] overflow-y-auto scrollbar-hide">
-          {/* Image Upload Section */}
           <div className="space-y-4">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Service Visual Identity</label>
             <div 
@@ -110,13 +119,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, on
                   <p className="text-[9px] text-slate-400 mt-1 uppercase tracking-widest">JPG, PNG, WebP recommended</p>
                 </>
               )}
-              <input 
-                type="file" 
-                ref={fileInputRef}
-                onChange={handleImageChange}
-                accept="image/*"
-                className="hidden"
-              />
+              <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
             </div>
           </div>
 
@@ -146,7 +149,18 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, on
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Service Specifications</label>
+            <div className="flex items-center justify-between px-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Service Specifications</label>
+              <button 
+                type="button"
+                onClick={handleAiGenerate}
+                disabled={isAiGenerating || !formData.name || !formData.category}
+                className="flex items-center gap-1.5 text-[9px] font-black text-indigo-600 uppercase tracking-widest hover:text-indigo-700 disabled:opacity-30 transition-all group"
+              >
+                {isAiGenerating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} className="group-hover:scale-110 transition-transform" />}
+                AI Suggest Description
+              </button>
+            </div>
             <textarea 
               rows={3}
               value={formData.description}
@@ -158,40 +172,20 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, on
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-1.5">Settlement ($)</label>
-              <input 
-                type="number" 
-                value={formData.price}
-                onChange={e => setFormData({...formData, price: Number(e.target.value)})}
-                className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold text-slate-900 focus:border-indigo-600 focus:bg-white transition-all outline-none"
-              />
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Settlement ($)</label>
+              <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold text-slate-900 focus:border-indigo-600 focus:bg-white outline-none" />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-1.5">Active Mins</label>
-              <input 
-                type="number" 
-                value={formData.durationMinutes}
-                onChange={e => setFormData({...formData, durationMinutes: Number(e.target.value)})}
-                className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold text-slate-900 focus:border-indigo-600 focus:bg-white transition-all outline-none"
-              />
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Active Mins</label>
+              <input type="number" value={formData.durationMinutes} onChange={e => setFormData({...formData, durationMinutes: Number(e.target.value)})} className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold text-slate-900 focus:border-indigo-600 focus:bg-white outline-none" />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-1.5">Slot Capacity</label>
-              <input 
-                type="number" 
-                value={formData.maxCapacity}
-                onChange={e => setFormData({...formData, maxCapacity: Number(e.target.value)})}
-                className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold text-slate-900 focus:border-indigo-600 focus:bg-white transition-all outline-none"
-              />
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Slot Capacity</label>
+              <input type="number" value={formData.maxCapacity} onChange={e => setFormData({...formData, maxCapacity: Number(e.target.value)})} className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold text-slate-900 focus:border-indigo-600 focus:bg-white outline-none" />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-1.5">Sync Buffer</label>
-              <input 
-                type="number" 
-                value={formData.bufferMinutes}
-                onChange={e => setFormData({...formData, bufferMinutes: Number(e.target.value)})}
-                className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold text-slate-900 focus:border-indigo-600 focus:bg-white transition-all outline-none"
-              />
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Sync Buffer</label>
+              <input type="number" value={formData.bufferMinutes} onChange={e => setFormData({...formData, bufferMinutes: Number(e.target.value)})} className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold text-slate-900 focus:border-indigo-600 focus:bg-white outline-none" />
             </div>
           </div>
 
