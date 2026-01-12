@@ -4,8 +4,36 @@ import Layout from './components/Layout';
 import { MOCK_USERS, MOCK_SERVICES, INITIAL_BOOKINGS, INITIAL_REVIEWS, MOCK_STAFF, MOCK_LOCATIONS } from './constants';
 import { UserRole, Booking, BookingStatus, PaymentStatus, Review, Staff, Service, User, RecurrencePattern, Notification, Location } from './types';
 import { StatCard, SectionTitle } from './components/DashboardWidgets';
-// Fix: Added Image as ImageIcon to lucide-react imports
-import { Calendar, DollarSign, Clock, Plus, Filter, MoreVertical, Star, Briefcase, Shield, RefreshCcw, Edit3, Trash2, Mail as MailIcon, Smartphone, MapPin, Globe, Zap, TrendingUp, Camera, Lock, Bell, CheckCircle, Save, LogOut, User as UserIcon, Users, Image as ImageIcon } from 'lucide-react';
+import { 
+  Calendar, 
+  DollarSign, 
+  Clock, 
+  Plus, 
+  Filter, 
+  MoreVertical, 
+  Star, 
+  Briefcase, 
+  Shield, 
+  RefreshCcw, 
+  Edit3, 
+  Trash2, 
+  Mail as MailIcon, 
+  Smartphone, 
+  MapPin, 
+  Globe, 
+  Zap, 
+  TrendingUp, 
+  Camera, 
+  Lock, 
+  Bell, 
+  CheckCircle, 
+  Save, 
+  LogOut, 
+  User as UserIcon, 
+  Users, 
+  Image as ImageIcon,
+  Heart
+} from 'lucide-react';
 import BookingWizard from './pages/CustomerBooking';
 import { RatingStars } from './components/RatingStars';
 import { BookingStatusManager } from './components/BookingStatusManager';
@@ -60,7 +88,11 @@ const App: React.FC = () => {
 
   const login = (role: UserRole) => {
     const userTemplate = MOCK_USERS.find(u => u.role === role) || MOCK_USERS[0];
-    const user: User = { ...userTemplate, createdAt: new Date().toISOString() };
+    const user: User = { 
+      ...userTemplate, 
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString() 
+    };
     setCurrentUser(user);
     localStorage.setItem('databook_auth', JSON.stringify(user));
   };
